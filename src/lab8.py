@@ -1,115 +1,191 @@
-import psycopg2
+"""
+Лабораторна робота № 8. Підключення до бази даних та виконання основних операцій.
+Варіант 11: База даних «Ферма» (farm.db) з таблицею «Тварини» (animals).
+Студент: Фесюк Максим Ігорович (КН-25-2)
+"""
 import os
+import sqlite3
+from typing import List, Tuple
 
-# --- DANGER ZONE ---
-# PASSWORD stored in plain text. This is not secure.
-# In a real-world application, use environment variables
-# or a secret management service.
-# For this lab, you can set an environment variable:
-# export DB_PASSWORD='your_password'
-# --- /DANGER ZONE ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, "farm.db")
 
-# --- STUDENT TODO: ---
-# 1. Replace 'your_database' with the name of your database
-# 2. Replace 'your_user' with your database username (often 'postgres')
-# 3. Replace 'your_password' with your database password
-# 4. Replace 'your_host' with your database host (usually 'localhost')
-# 5. Replace 'your_port' with your database port (usually '5432' for PostgreSQL)
+AnimalRow = Tuple[int, str, str, int, float, str]
 
-DB_NAME = "your_database"
-DB_USER = "postgres"
-DB_PASS = os.getenv("DB_PASSWORD", "your_password") # Fallback to insecure default
-DB_HOST = "localhost"
-DB_PORT = "5432"
 
-def main():
+def get_connection(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
+    """Встановлює з'єднання з базою даних SQLite «Ферма»."""
+    return sqlite3.connect(db_path)
+
+
+def create_animals_table(conn: sqlite3.Connection) -> None:
+    """Створює таблицю animals (Тварини) з різними типами даних та первинним ключем."""
+    create_query = """
+    CREATE TABLE IF NOT EXISTS animals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        species VARCHAR(100) NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        age INTEGER NOT NULL,
+        weight REAL NOT NULL,
+        arrival_date DATE NOT NULL
+    );
     """
-    Main function to connect to the database and perform operations.
-    Students should modify this function to complete their lab assignments.
+    with conn:
+        conn.execute(create_query)
+
+
+def reset_animals_table(conn: sqlite3.Connection) -> None:
+    """Очищує таблицю перед демонстраційним заповненням, щоб уникнути дублювання."""
+    with conn:
+        conn.execute("DELETE FROM animals;")
+        conn.execute("DELETE FROM sqlite_sequence WHERE name = 'animals';")
+
+
+def insert_animals(
+    conn: sqlite3.Connection, animals_data: List[Tuple[str, str, int, float, str]]
+) -> int:
+    """Вставляє список записів про тварин у таблицю animals."""
+    insert_query = """
+    INSERT INTO animals (species, name, age, weight, arrival_date)
+    VALUES (?, ?, ?, ?, ?);
     """
-    conn = None  # Initialize conn to None
-    try:
-        # Establish the connection
-        conn = psycopg2.connect(
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS,
-            host=DB_HOST,
-            port=DB_PORT
+    with conn:
+        cur = conn.executemany(insert_query, animals_data)
+        return cur.rowcount
+
+
+def update_animal_weight_and_age(
+    conn: sqlite3.Connection, name: str, new_weight: float, new_age: int
+) -> int:
+    """Оновлює вагу та вік тварини за її кличкою."""
+    update_query = """
+    UPDATE animals
+    SET weight = ?, age = ?
+    WHERE name = ?;
+    """
+    with conn:
+        cur = conn.execute(update_query, (new_weight, new_age, name))
+        return cur.rowcount
+
+
+def delete_animal_by_name(conn: sqlite3.Connection, name: str) -> int:
+    """Видаляє запис про тварину за її кличкою."""
+    delete_query = "DELETE FROM animals WHERE name = ?;"
+    with conn:
+        cur = conn.execute(delete_query, (name,))
+        return cur.rowcount
+
+
+def select_all_animals(conn: sqlite3.Connection) -> List[AnimalRow]:
+    """Повертає всі записи з таблиці animals, відсортовані за ID."""
+    cur = conn.cursor()
+    cur.execute("SELECT id, species, name, age, weight, arrival_date FROM animals ORDER BY id ASC;")
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
+def select_heavy_animals(
+    conn: sqlite3.Connection, min_weight: float
+) -> List[AnimalRow]:
+    """Повертає тварин із вагою більшою за min_weight, відсортованих за спаданням ваги."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, species, name, age, weight, arrival_date
+        FROM animals
+        WHERE weight > ?
+        ORDER BY weight DESC;
+        """,
+        (min_weight,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
+def select_animals_by_species(
+    conn: sqlite3.Connection, species: str
+) -> List[AnimalRow]:
+    """Повертає тварин певного виду, відсортованих за віком за зростанням."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, species, name, age, weight, arrival_date
+        FROM animals
+        WHERE species = ?
+        ORDER BY age ASC;
+        """,
+        (species,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
+def print_table(title: str, rows: List[AnimalRow]) -> None:
+    """Форматовано виводить результати SELECT-запиту в консоль."""
+    print(f"\n--- {title} ---")
+    header = f"{'ID':<4} | {'Вид':<10} | {'Кличка':<12} | {'Вік':<5} | {'Вага (кг)':<10} | {'Дата прибуття':<12}"
+    print(header)
+    print("-" * len(header))
+    for row in rows:
+        print(
+            f"{row[0]:<4} | {row[1]:<10} | {row[2]:<12} | {row[3]:<5} | {row[4]:<10.1f} | {row[5]:<12}"
         )
-        print("Database connected successfully")
-        cur = conn.cursor()
 
-        # --- STUDENT TODO: Task 3 - Create Table ---
-        # Write your SQL query to create a table.
-        # Example for 'students' table:
-        # create_table_query = """
-        # CREATE TABLE IF NOT EXISTS students (
-        #     id SERIAL PRIMARY KEY,
-        #     name VARCHAR(100) NOT NULL,
-        #     age INTEGER,
-        #     admission_date DATE
-        # );
-        # """
-        # cur.execute(create_table_query)
-        # conn.commit()
-        # print("Table 'students' created successfully.")
 
-        # --- STUDENT TODO: Task 4 - Insert Data ---
-        # Write your SQL query to insert data.
-        # Use executemany for multiple inserts.
-        # Example for 'students' table:
-        # insert_query = "INSERT INTO students (name, age, admission_date) VALUES (%s, %s, %s);"
-        # student_data = [
-        #     ('John Doe', 20, '2023-09-01'),
-        #     ('Jane Smith', 22, '2022-09-01'),
-        #     ('Alice Johnson', 19, '2024-09-01'),
-        #     ('Bob Williams', 21, '2023-09-01'),
-        #     ('Anna Brown', 20, '2022-09-01')
-        # ]
-        # cur.executemany(insert_query, student_data)
-        # conn.commit()
-        # print(f"{cur.rowcount} records inserted successfully.")
+def main(db_path: str = DEFAULT_DB_PATH) -> None:
+    """Головна функція демонстрації CRUD-операцій з базою даних «Ферма»."""
+    conn = None
+    try:
+        conn = get_connection(db_path)
+        print(f"Успішно підключено до бази даних «Ферма»: {db_path}")
 
-        # --- STUDENT TODO: Task 5 - Update Data ---
-        # Write your SQL query to update data.
-        # Example for 'students' table:
-        # update_query = "UPDATE students SET age = 21 WHERE name = 'John Doe';"
-        # cur.execute(update_query)
-        # conn.commit()
-        # print(f"{cur.rowcount} record(s) updated successfully.")
+        # Завдання 3: Створення таблиці «Тварини» (animals)
+        create_animals_table(conn)
+        reset_animals_table(conn)
+        print("Таблицю 'animals' успішно створено та підготовлено до роботи.")
 
-        # --- STUDENT TODO: Task 6 - Delete Data ---
-        # Write your SQL query to delete data.
-        # Example for 'students' table:
-        # delete_query = "DELETE FROM students WHERE name = 'Jane Smith';"
-        # cur.execute(delete_query)
-        # conn.commit()
-        # print(f"{cur.rowcount} record(s) deleted successfully.")
+        # Завдання 4: Вставка принаймні 5 рядків даних
+        initial_animals = [
+            ("Корова", "Зірка", 4, 520.5, "2022-04-15"),
+            ("Кінь", "Буран", 6, 480.0, "2021-06-10"),
+            ("Вівця", "Хмаринка", 2, 65.3, "2024-03-20"),
+            ("Свиня", "Пятачок", 1, 110.0, "2025-02-12"),
+            ("Коза", "Білка", 3, 48.7, "2023-08-05"),
+            ("Корова", "Квітка", 5, 545.2, "2021-09-18"),
+        ]
+        inserted = insert_animals(conn, initial_animals)
+        print(f"Додано записів у таблицю 'animals': {inserted}")
+        print_table("Початковий вміст таблиці 'animals'", select_all_animals(conn))
 
-        # --- STUDENT TODO: Task 7 - Select Data ---
-        # Write your SQL query to select data.
-        # Fetch and print the results.
-        # Example for 'students' table:
-        # select_query = "SELECT * FROM students ORDER BY age DESC;"
-        # cur.execute(select_query)
-        # records = cur.fetchall()
-        # print("\n--- Student Records ---")
-        # for record in records:
-        #     print(f"ID: {record[0]}, Name: {record[1]}, Age: {record[2]}, Admission Date: {record[3]}")
-        # print("-----------------------\n")
+        # Завдання 5: Оновлення даних за умовою
+        updated = update_animal_weight_and_age(conn, "Зірка", new_weight=538.0, new_age=5)
+        print(f"\nОновлено записів (кличка = 'Зірка'): {updated}")
 
-        # Remember to close the cursor
-        cur.close()
+        # Завдання 6: Видалення даних за умовою
+        deleted = delete_animal_by_name(conn, "Пятачок")
+        print(f"Видалено записів (кличка = 'Пятачок'): {deleted}")
 
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(f"Error while connecting to PostgreSQL: {error}")
+        # Завдання 7: Вибірка даних з умовами та сортуванням
+        print_table("Усі тварини після оновлення та видалення", select_all_animals(conn))
+        print_table(
+            "Тварини з вагою понад 100 кг (сортування за спаданням ваги)",
+            select_heavy_animals(conn, 100.0),
+        )
+        print_table(
+            "Вибірка за видом 'Корова' (сортування за зростанням віку)",
+            select_animals_by_species(conn, "Корова"),
+        )
 
+    except sqlite3.Error as error:
+        print(f"Помилка під час роботи з базою даних SQLite: {error}")
     finally:
-        # Ensure the connection is closed
         if conn is not None:
             conn.close()
-            print("Database connection closed.")
+            print("\nЗ'єднання з базою даних закрито.")
+
 
 if __name__ == "__main__":
     main()

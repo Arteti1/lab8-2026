@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="300" viewBox="0 0 820 300">
+  <rect width="820" height="300" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="2"/>
+  <rect width="820" height="40" rx="10" fill="#f6f8fa"/>
+  <text x="20" y="26" fill="#24292f" font-family="Segoe UI, Arial, sans-serif" font-weight="bold" font-size="14">SQLite Viewer — farm.db :: SELECT * FROM animals ORDER BY id ASC;</text>
+  <g font-family="Consolas, monospace" font-size="13" fill="#24292f">
+    <rect x="20" y="58" width="780" height="32" fill="#eaeef2"/>
+    <text x="35" y="79" font-weight="bold">id (PK)</text>
+    <text x="125" y="79" font-weight="bold">species</text>
+    <text x="260" y="79" font-weight="bold">name</text>
+    <text x="405" y="79" font-weight="bold">age</text>
+    <text x="495" y="79" font-weight="bold">weight</text>
+    <text x="625" y="79" font-weight="bold">arrival_date</text>
+
+    <line x1="20" y1="122" x2="800" y2="122" stroke="#d0d7de"/>
+    <text x="35" y="112">1</text><text x="125" y="112">Корова</text><text x="260" y="112">Зірка</text><text x="405" y="112">5</text><text x="495" y="112">538.0</text><text x="625" y="112">2022-04-15</text>
+
+    <line x1="20" y1="154" x2="800" y2="154" stroke="#d0d7de"/>
+    <text x="35" y="144">2</text><text x="125" y="144">Кінь</text><text x="260" y="144">Буран</text><text x="405" y="144">6</text><text x="495" y="144">480.0</text><text x="625" y="144">2021-06-10</text>
+
+    <line x1="20" y1="186" x2="800" y2="186" stroke="#d0d7de"/>
+    <text x="35" y="176">3</text><text x="125" y="176">Вівця</text><text x="260" y="176">Хмаринка</text><text x="405" y="176">2</text><text x="495" y="176">65.3</text><text x="625" y="176">2024-03-20</text>
+
+    <line x1="20" y1="218" x2="800" y2="218" stroke="#d0d7de"/>
+    <text x="35" y="208">5</text><text x="125" y="208">Коза</text><text x="260" y="208">Білка</text><text x="405" y="208">3</text><text x="495" y="208">48.7</text><text x="625" y="208">2023-08-05</text>
+
+    <line x1="20" y1="250" x2="800" y2="250" stroke="#d0d7de"/>
+    <text x="35" y="240">6</text><text x="125" y="240">Корова</text><text x="260" y="240">Квітка</text><text x="405" y="240">5</text><text x="495" y="240">545.2</text><text x="625" y="240">2021-09-18</text>
+
+    <text x="20" y="278" fill="#57606a" font-size="12">5 rows returned in 1 ms (SQLite 3 — table: animals)</text>
+  </g>
+</svg>
